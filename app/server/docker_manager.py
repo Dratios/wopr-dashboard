@@ -390,8 +390,11 @@ class DockerManager:
                 stacks[stack_name]["containsSelf"] = True
 
         for stack in stacks.values():
-            owners = {c["owner"] for c in stack["containers"]}
-            stack["owner"] = owners.pop() if len(owners) == 1 else "shared"
+            # Pas `owners` : ce nom est celui du module importé plus haut, et une
+            # affectation locale le masquerait dans toute la fonction.
+            stack_owners = {c["owner"] for c in stack["containers"]}
+            stack["owner"] = (stack_owners.pop() if len(stack_owners) == 1
+                              else owners.SHARED_ID)
             stack["containers"].sort(key=lambda c: c["name"])
 
         return {
