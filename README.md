@@ -117,7 +117,7 @@ les laisser mentir, ils ont été supprimés :
 ## Installation
 
 ```bash
-git clone https://github.com/dratios/wopr-dashboard.git
+git clone https://github.com/Dratios/wopr-dashboard.git
 cd wopr-dashboard
 
 # 1. Secrets : secret de session + empreinte du mot de passe administrateur
