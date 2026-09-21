@@ -1,0 +1,89 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  --bg-primary: #0d1117;
+  --bg-surface: #161b22;
+  --bg-surface-elevated: #21262d;
+  --border-color: #30363d;
+  --accent: #4c9ffe;
+  --color-ok: #3fb950;
+  --color-warn: #d29922;
+  --color-err: #f85149;
+  --color-inactive: #6e7681;
+}
+
+html.light {
+  color-scheme: light;
+  --bg-primary: #f6f8fa;
+  --bg-surface: #ffffff;
+  --bg-surface-elevated: #f0f2f5;
+  --border-color: #d0d7de;
+  --accent: #0969da;
+  --color-ok: #1a7f37;
+  --color-warn: #9a6700;
+  --color-err: #cf222e;
+  --color-inactive: #8c959f;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-primary);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Tabular nums for all counters and gauges */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Custom Cockpit Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(13, 17, 23, 0.5);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #30363d;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #444c56;
+}
+
+/* Custom glow utility classes */
+.glow-ok {
+  box-shadow: 0 0 15px rgba(63, 185, 80, 0.15);
+}
+
+.glow-warn {
+  box-shadow: 0 0 15px rgba(210, 153, 34, 0.2);
+}
+
+.glow-err {
+  box-shadow: 0 0 15px rgba(248, 81, 73, 0.25);
+}
+
+.glow-accent {
+  box-shadow: 0 0 15px rgba(76, 159, 254, 0.2);
+}
+
+/* Subtle pulsating animation for critical alerts */
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}

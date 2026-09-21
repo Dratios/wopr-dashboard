@@ -1,0 +1,39 @@
+# ---------------------------------------------------------------- secrets
+# Jamais versionnés (§7 de wopr-server-rules.md). Le `.env` porte le secret de
+# session, l'empreinte du mot de passe administrateur, le jeton Telegram et le
+# mot de passe de la base d'historique. Le modèle publiable est `.env.example`.
+.env
+.env.*
+!.env.example
+
+# ------------------------------------------------- configuration de la machine
+# Écrit par l'onglet Paramètres : contient l'empreinte du mot de passe dès qu'il
+# est changé depuis l'interface, ainsi que les réglages propres à l'installation.
+config/settings.yaml
+
+# Nomme les administrateurs réels de la machine et décrit ce qui y tourne.
+# Le modèle publiable est `config/owners.example.yaml`.
+config/owners.yaml
+
+# Sauvegardes horodatées déposées avant chaque écriture de configuration : même
+# contenu que les fichiers ci-dessus, donc mêmes précautions.
+*.bak
+*.bak-*
+
+# ------------------------------------------------------------- état persistant
+# Journal d'audit (qui a fait quoi sur cette machine), mode actif, courbes de
+# ventilation, acquittements d'alertes. À sauvegarder, pas à publier.
+data/*
+!data/.gitkeep
+
+# --------------------------------------------------------- artefacts de build
+app/node_modules/
+app/dist/
+**/__pycache__/
+*.py[cod]
+
+# ------------------------------------------------------------------- divers
+*.log
+.DS_Store
+.idea/
+.vscode/

@@ -1,0 +1,103 @@
+# Modes machine du serveur wopr
+#
+# Modifiable depuis l'onglet Paramètres du dashboard, ou à la main : les
+# définitions sont relues sans redémarrage. Une écriture depuis l'interface
+# conserve ces commentaires et dépose une sauvegarde `.bak-<horodatage>`.
+#
+# Leviers disponibles (uniquement ceux qui agissent réellement sur cette machine) :
+#
+#   cpuGovernor      performance | powersave        (amd-pstate-epp n'en propose pas d'autres)
+#   cpuEpp           performance | balance_performance | balance_power | power | default
+#   gpuPowerLimit    watts, "max", "min", "70%", ou un dictionnaire indexé par carte
+#                    → le pourcentage se rapporte à la plage propre à CHAQUE carte,
+#                      donc un mode reste valide quand la Tesla P100 sera ajoutée
+#   fanCurvePreset   Silencieux | Équilibré | Refroidissement forcé | null (rend la
+#                    main au Smart Fan IV de la carte mère)
+#   ollamaKeepAlive  durée de rétention des modèles en VRAM ("5m", "1h", 0, -1)
+#   containers       stop / start : listes de conteneurs NOMMÉS EXPLICITEMENT
+#
+# Sur les conteneurs : les listes sont vides par défaut, volontairement. Ce serveur
+# est partagé, et un mode ne doit jamais couper par surprise un service qui n'est
+# pas le vôtre. Remplissez-les en connaissance de cause, et prévenez l'autre
+# administrateur.
+
+modes:
+  - id: libre
+    label: Libre (plein régime)
+    icon: zap
+    description: >-
+      Quelqu'un travaille sur le serveur. Aucune limitation : CPU en performance,
+      GPU à sa puissance maximale, ventilation renforcée, modèles maintenus en VRAM.
+    policies:
+      cpuGovernor: performance
+      cpuEpp: performance
+      gpuPowerLimit: max
+      fanCurvePreset: Refroidissement forcé
+      ollamaKeepAlive: "1h"
+      containers:
+        stop: []
+        start: []
+
+  - id: equilibre
+    label: Équilibré
+    icon: gauge
+    description: >-
+      Usage quotidien. Réglages d'origine du constructeur, ventilation équilibrée,
+      rétention des modèles standard. C'est le mode de retour automatique.
+    policies:
+      cpuGovernor: powersave
+      cpuEpp: balance_performance
+      gpuPowerLimit: max
+      fanCurvePreset: null
+      ollamaKeepAlive: "5m"
+      containers:
+        stop: []
+        start: []
+
+  - id: silencieux
+    label: Silencieux (nuit)
+    icon: moon
+    description: >-
+      Bruit minimal. Ventilateurs au plus bas compatible avec la sécurité thermique,
+      GPU bridé à mi-plage, modèles déchargés rapidement.
+    policies:
+      cpuGovernor: powersave
+      cpuEpp: balance_power
+      gpuPowerLimit: 55%
+      fanCurvePreset: Silencieux
+      ollamaKeepAlive: "2m"
+      containers:
+        stop: []
+        start: []
+
+  - id: eco
+    label: Éco (absent)
+    icon: leaf
+    description: >-
+      Personne n'est là. Consommation minimale : CPU en économie, GPU au plus bas
+      de sa plage, modèles déchargés dès la fin d'une requête.
+    policies:
+      cpuGovernor: powersave
+      cpuEpp: power
+      gpuPowerLimit: min
+      fanCurvePreset: Silencieux
+      ollamaKeepAlive: 0
+      containers:
+        stop: []
+        start: []
+
+  - id: maintenance
+    label: Maintenance
+    icon: wrench
+    description: >-
+      Intervention en cours sur la machine. Ventilation rendue à la carte mère et
+      réglages neutres, pour ne pas interférer avec un diagnostic matériel.
+      Le bandeau « maintenance en cours » s'affiche pour l'autre administrateur.
+    policies:
+      cpuGovernor: performance
+      cpuEpp: default
+      fanCurvePreset: null
+      ollamaKeepAlive: "5m"
+      containers:
+        stop: []
+        start: []

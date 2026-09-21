@@ -1,0 +1,132 @@
+# ======================================================================
+# Stack : wopr-dashboard
+# Supervision et pilotage du serveur wopr — interface web sur le LAN.
+# Voir README.md pour les exceptions aux conventions et leur justification.
+# ======================================================================
+
+services:
+  wopr-dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: wopr-dashboard:1.0.0
+    container_name: wopr-dashboard
+    restart: unless-stopped
+
+    # --- Exceptions aux conventions §4.3, justifiées dans le README ----------
+    # privileged : écriture sur /sys (gouverneur CPU, PWM des ventilateurs) et
+    #              entrée dans les namespaces de l'hôte via nsenter.
+    # pid: host  : voir les processus réels de la machine, pas ceux du conteneur.
+    # network_mode: host : mesurer le vrai trafic des interfaces et lister les
+    #              ports réellement en écoute avec le processus derrière.
+    privileged: true
+    pid: host
+    network_mode: host
+
+    environment:
+      # Pas de section `ports:` avec le réseau hôte : c'est uvicorn qui choisit
+      # son adresse d'écoute. On se limite à l'IP du LAN — le dashboard n'est
+      # donc pas joignable depuis l'extérieur de ce réseau.
+      BIND_ADDR: ${BIND_ADDR:-127.0.0.1}
+      BIND_PORT: ${BIND_PORT:-8080}
+      TZ: Europe/Paris
+      WOPR_SESSION_SECRET: ${WOPR_SESSION_SECRET:?définissez WOPR_SESSION_SECRET dans le .env}
+      WOPR_USERS: ${WOPR_USERS:?définissez WOPR_USERS dans le .env}
+      WOPR_OWNER_IDENTITY: ${WOPR_OWNER_IDENTITY:-lux}
+      WOPR_COOKIE_SECURE: ${WOPR_COOKIE_SECURE:-0}
+      WOPR_OLLAMA_URL: ${WOPR_OLLAMA_URL:-http://127.0.0.1:11434}
+      WOPR_LOG_LEVEL: ${WOPR_LOG_LEVEL:-INFO}
+      WOPR_TELEGRAM_BOT_TOKEN: ${WOPR_TELEGRAM_BOT_TOKEN:-}
+      WOPR_TELEGRAM_CHAT_ID: ${WOPR_TELEGRAM_CHAT_ID:-}
+      WOPR_TELEGRAM_MIN_LEVEL: ${WOPR_TELEGRAM_MIN_LEVEL:-warn}
+      WOPR_TELEGRAM_COOLDOWN_S: ${WOPR_TELEGRAM_COOLDOWN_S:-900}
+      # Historique longue durée : le service `db` ci-dessous, joint par le port
+      # qu'il publie sur la boucle locale (ce conteneur est en réseau hôte).
+      WOPR_DB_HOST: 127.0.0.1
+      WOPR_DB_PORT: ${WOPR_DB_PORT:-5434}
+      WOPR_DB_NAME: wopr_history
+      WOPR_DB_USER: wopr
+      WOPR_DB_PASSWORD: ${WOPR_DB_PASSWORD:?définissez WOPR_DB_PASSWORD dans le .env}
+      WOPR_HISTORY_RETENTION_H: ${WOPR_HISTORY_RETENTION_H:-24}
+
+    volumes:
+      # Pilotage des conteneurs (lecture de l'état, actions, flux de statistiques).
+      - /var/run/docker.sock:/var/run/docker.sock
+      # /sys en écriture : gouverneur CPU et PWM des ventilateurs.
+      - /sys:/sys
+      # Racine de l'hôte en lecture seule : occupation des systèmes de fichiers
+      # réels, que le namespace de montage du conteneur ne montre pas.
+      - /:/host/root:ro
+      # `config` en écriture : l'onglet Paramètres réécrit settings.yaml,
+      # thresholds.yaml et modes.yaml, en préservant propriétaire et droits.
+      - ./config:/config
+      - ./data:/data
+      # Le .env lui-même, pour les réglages lus à la création du conteneur
+      # (adresse d'écoute, secret de session, mot de passe de la base). Le
+      # dashboard les y écrit, puis signale qu'une recréation est nécessaire.
+      # Aucun privilège nouveau : ce conteneur est déjà root-équivalent.
+      - ./.env:/host-env
+
+    # La carte NVIDIA, pour NVML (télémétrie et limite de puissance).
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu, utility]
+
+    labels:
+      com.wopr.stack: "wopr-dashboard"
+      com.wopr.owner: "shared"
+      com.wopr.managed-by: "compose"
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Historique des métriques pour les graphes de 1 min à 6 h. Facultatif : s'il
+  # est arrêté, le dashboard fonctionne et les graphes retombent sur les quelques
+  # minutes gardées en mémoire. D'où l'absence de `depends_on`.
+  db:
+    image: postgres:18-alpine
+    container_name: wopr-dashboard-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: wopr_history
+      POSTGRES_USER: wopr
+      POSTGRES_PASSWORD: ${WOPR_DB_PASSWORD:?définissez WOPR_DB_PASSWORD dans le .env}
+    # Boucle locale uniquement : seul le dashboard (réseau hôte) s'y connecte.
+    # 5433 est déjà pris par le Postgres existant.
+    ports:
+      - "127.0.0.1:${WOPR_DB_PORT:-5434}:5432"
+    # Depuis PostgreSQL 18, l'image range ses données sous /var/lib/postgresql/18/ :
+    # c'est le dossier parent qu'il faut monter.
+    volumes:
+      - pgdata:/var/lib/postgresql
+    networks:
+      - net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wopr -d wopr_history"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    labels:
+      com.wopr.stack: "wopr-dashboard"
+      com.wopr.owner: "shared"
+      com.wopr.managed-by: "compose"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  # Nom final : wopr-dashboard_pgdata (§4.1).
+  pgdata:
+
+networks:
+  net:
+    name: wopr-dashboard_net

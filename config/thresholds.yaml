@@ -1,0 +1,68 @@
+# Seuils d'alerte du dashboard wopr
+#
+# Modifiable depuis l'onglet Paramètres du dashboard, ou à la main : dans les
+# deux cas l'effet est immédiat, le fichier étant relu sans redémarrage. Une
+# écriture depuis l'interface conserve ces commentaires, le propriétaire et les
+# droits du fichier, et dépose une sauvegarde `.bak-<horodatage>` à côté.
+#
+# Les seuils de température par capteur sont définis par type de puce dans
+# `server/hardware.py` (ils dépendent du matériel) ; ici on règle le reste.
+#
+# Note : `gpu.vramTelegram` a disparu. Choisir si la VRAM notifie sur Telegram se
+# fait maintenant dans Paramètres → Notifications, ligne « VRAM des GPU » du
+# tableau des familles. L'ancienne valeur y a été reprise automatiquement.
+
+disque:
+  # Pourcentage d'occupation à partir duquel on prévient / on alerte.
+  warnPct: 80
+  critPct: 92
+  # Un très gros volume n'a pas les mêmes seuils utiles qu'un disque système :
+  # à 80 % d'un volume de plusieurs To, il reste des centaines de Go, prévenir
+  # si tôt n'apprend rien. D'où la surcharge par point de montage.
+  parMontage:
+    /mnt/Big:
+      warnPct: 88
+      critPct: 95
+    /boot:
+      warnPct: 75
+      critPct: 90
+
+charge:
+  # Charge moyenne sur 5 min, rapportée au nombre de threads (16 ici).
+  # 1.0 = tous les threads occupés.
+  warnRatio: 1.0
+  critRatio: 1.5
+
+memoire:
+  warnPct: 85
+  critPct: 95
+  swapWarnPct: 50
+
+gpu:
+  vramWarnPct: 88
+  vramCritPct: 96
+  # Charger un modèle LLM remplit la VRAM à chaque prompt : ces alertes restent
+  # affichées dans le dashboard mais n'envoient pas de Telegram (true pour réactiver).
+  vramTelegram: false
+  tempWarnC: 80
+  tempCritC: 88
+
+docker:
+  # Nombre de redémarrages d'un conteneur au-delà duquel on le signale.
+  restartsWarn: 3
+  restartsCrit: 10
+  # Un conteneur arrêté dont la politique est `unless-stopped` a probablement
+  # échoué plutôt qu'été arrêté volontairement.
+  signalerArretsInattendus: true
+
+reseau:
+  # Erreurs cumulées sur une interface.
+  erreursWarn: 100
+  # Latence passerelle en millisecondes.
+  gatewayWarnMs: 20
+
+systeme:
+  # Signaler qu'un redémarrage est requis (paquet noyau installé, etc.).
+  signalerRebootRequis: true
+  # Signaler l'absence de pare-feu actif (nftables / ufw / firewalld).
+  signalerAbsencePareFeu: true

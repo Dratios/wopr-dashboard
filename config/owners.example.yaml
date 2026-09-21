@@ -1,0 +1,65 @@
+# Administrateurs de la machine — modèle à copier en `owners.yaml`.
+#
+#     cp config/owners.example.yaml config/owners.yaml
+#
+# `owners.yaml` n'est pas versionné : il nomme des personnes réelles et décrit
+# ce qui tourne sur la machine. Ce modèle-ci l'est, pour que le dépôt dise
+# quelle forme le fichier doit avoir.
+#
+# À quoi ça sert
+# --------------
+# L'étiquette Docker `com.wopr.owner` posée sur un conteneur reste la seule
+# source d'autorité sur son appartenance. Ce fichier ne fait que :
+#
+#   * deviner le propriétaire d'un conteneur qui ne porte pas l'étiquette, à
+#     partir de fragments de son nom ou de son image (`hints`) ;
+#   * donner à l'interface le nom, la couleur et l'infobulle de chaque identité.
+#
+# L'ordre compte : la première identité dont un `hint` apparaît l'emporte, ce
+# qui permet de placer une règle précise avant une règle large. Sans
+# correspondance, le conteneur est « partagé ».
+#
+# Le fichier est relu à chaud : nul besoin de reconstruire l'image ni de
+# redémarrer le conteneur après l'avoir modifié.
+
+owners:
+  # ---------------------------------------------------------------- vous
+  - id: admin                  # valeur attendue dans `com.wopr.owner`
+    label: "@admin"            # ce que l'interface affiche
+    tone: cyan                 # cyan | purple | emerald | amber | rose | sky | slate
+    description: "Appartient à l'administrateur principal"
+    blurb: "Une ligne affichée sous le compteur, vue Docker"
+    hints:                     # fragments cherchés dans « nom image » du conteneur
+      - mon-appli
+      - mon-autre-stack
+
+  # ------------------------------------------------- l'autre administrateur
+  # Supprimer ce bloc si la machine n'a qu'un administrateur ; en ajouter
+  # d'autres si elle en compte plus. Agir sur un conteneur qui n'est pas le
+  # vôtre déclenche une confirmation renforcée dans l'interface.
+  - id: coadmin
+    label: "@coadmin"
+    tone: purple
+    description: "Appartient au second administrateur"
+    blurb: "Facultatif — omettre laisse la carte aux seuls chiffres"
+    hints:
+      - sa-stack
+
+  # ------------------------------------------------------------- partagé
+  # Identité structurelle : c'est le repli quand aucune règle ne tranche.
+  # Si vous la retirez, le dashboard la rajoute lui-même.
+  - id: shared
+    label: "Partagé"
+    tone: emerald
+    description: "Partagé (accessible / utilisé par tous)"
+    blurb: "Bases de données, proxys, observabilité"
+    hints:
+      - postgres
+      - redis
+      - traefik
+
+# Stacks affichées mais verrouillées : le dashboard refuse toute action dessus.
+# Utile pour une stack pilotée par autre chose que ce dashboard, ou dont l'arrêt
+# aurait des conséquences qu'il ne saurait pas annoncer. Laisser vide s'il n'y
+# en a aucune.
+outOfScopeStacks: []
